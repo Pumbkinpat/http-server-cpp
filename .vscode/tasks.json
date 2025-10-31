@@ -1,0 +1,33 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Build and Run C++ in External Terminal",
+        "type": "shell",
+        "command": "g++",
+        "args": [
+          "-std=c++17",
+          "-o",
+          "${fileDirname}/${fileBasenameNoExtension}",
+          "${file}"
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": ["$gcc"],
+        "detail": "Compile and run C++ code",
+        "dependsOn": ["Launch External Terminal"]
+      },
+      {
+        "label": "Launch External Terminal",
+        "type": "shell",
+        "command": "osascript",
+        "args": [
+          "-e",
+          "tell application \"Terminal\" to do script \"cd '${fileDirname}' && ./${fileBasenameNoExtension}\""
+        ]
+      }
+    ]
+  }
+  
