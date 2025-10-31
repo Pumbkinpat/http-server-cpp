@@ -2,6 +2,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <string.h>
 
 int main() {
   int domain = AF_INET;
@@ -51,12 +52,18 @@ int main() {
       printf("Client disconnected.\n");
   } else {
       buffer[bytes_received] = '\0'; 
-      printf("Received from client: %s\n", buffer);
+      printf("Received from client: \r\n%s\r\n", buffer);
   }
 
-  
+  size_t length = 8; 
+  char* startIndex = strstr(buffer, "/");
+  char* endIndex = strstr(buffer, " HTTP");
 
-  /* char* message = "Hello from server !";
+  char* message = (char*)malloc(sizeof(char) * (length + 1));
+  strncpy(message, startIndex, endIndex - startIndex);
+
+  message[length] = '\0';
+
   size_t bytes_sent = send(client_socket_fd, message, strlen(message), 0);
 
   if (bytes_sent == -1) {
@@ -66,7 +73,7 @@ int main() {
       fprintf(stderr, "Partial send: sent %zd out of %zu bytes\n", bytes_sent, strlen(message));
   } else {
       printf("Successfully sent message: %s\n", message);
-  } */
+  } 
   
   close(client_socket_fd);
   close(server_socket_fd);
