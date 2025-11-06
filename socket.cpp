@@ -1,4 +1,6 @@
 #include <iostream>
+#include <cstring>
+#include <stdexcept>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -45,7 +47,8 @@ int main() {
   }
 
   char buffer[1024]; // receives data in stream of bytes so we need an array of bytes to gurantee that we get all data 
-  size_t bytes_received = recv(client_socket_fd, buffer, sizeof(buffer), 0);
+  size_t bytes_received = recv(client_socket_fd, buffer, sizeof(buffer), 0); // receives data by bytes then stores into buffer array
+
   if (bytes_received == -1) {
       perror("receiv failed");
   } else if (bytes_received == 0) {
@@ -55,16 +58,39 @@ int main() {
       printf("Received from client: \r\n%s\r\n", buffer);
   }
 
-  size_t length = 8; 
-  char* startIndex = strstr(buffer, "/");
-  char* endIndex = strstr(buffer, " HTTP");
+  char* startIndex = std::strstr(buffer, "HTTP");
+  char* endIndex = std::strstr(buffer, "\r\n");
 
-  char* message = (char*)malloc(sizeof(char) * (length + 1));
-  strncpy(message, startIndex, endIndex - startIndex);
+  try {
+    // make sure the distance between start and end is not negative if not there will be segmentation fault 
+    if (!endIndex) {
+      throw std::invalid_argument("seems like strstr() method can not find the end");
+    }
 
-  message[length] = '\0';
+    if (endIndex - startIndex <= 0) {
+      throw std::length_error("seems like end in less then start!");
+    }
+  } catch(std::length_error& e) {
+    std::cout << "Length error: " << e.what() << std::endl;
+  } catch (std::invalid_argument& e) {
+    std::cout << "Invalid argument: " << e.what() << std::endl;
+  }
 
-  size_t bytes_sent = send(client_socket_fd, message, strlen(message), 0);
+  char* startURLPath = std::strstr(buffer, "/");
+  char* endURLPath = std::strstr(buffer, " HTTP");
+
+  char* message = (char*)malloc(sizeof(char) * (endIndex - startIndex + 1));
+  std::strncpy(message, startIndex, endIndex - startIndex);
+
+  if (endURLPath - startURLPath > 1) {
+    std::strcat(message, " 404 Not Found\r\n\r\n"); 
+    message[endIndex - startIndex + 18] = '\0';
+  } else {
+    std::strcat(message, " 200 OK\r\n\r\n"); 
+    message[endIndex - startIndex + 11] = '\0';
+  }
+
+  size_t bytes_sent = send(client_socket_fd, message, strlen(message) + 1, 0);
 
   if (bytes_sent == -1) {
       perror("send failed");
@@ -75,6 +101,7 @@ int main() {
       printf("Successfully sent message: %s\n", message);
   } 
   
+  shutdown(client_socket_fd, SHUT_WR);
   close(client_socket_fd);
   close(server_socket_fd);
   return 0;
